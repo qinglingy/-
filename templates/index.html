@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>番茄智能决策系统</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+    background: #f4f7fb;
+    font-family: "Microsoft YaHei", sans-serif;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:40px;
+}
+
+.header h2{
+    font-weight:600;
+}
+
+.card{
+    border-radius:12px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.06);
+    border:none;
+}
+
+.result-img{
+    width:100%;
+    height:420px;
+    object-fit:contain;
+    background:#eef2f6;
+    border-radius:10px;
+    padding:10px;
+}
+
+pre{
+    white-space:pre-wrap;
+    background:#f8f9fa;
+    padding:15px;
+    border-radius:8px;
+    font-size:14px;
+}
+
+.btn-primary{
+    height:45px;
+    font-size:16px;
+    border-radius:8px;
+}
+
+.section-title{
+    font-weight:600;
+    margin-bottom:15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+<div class="header">
+<h2>🍅 番茄生长智能决策系统</h2>
+<p class="text-muted">成熟度识别 + 病虫害检测 + 智能分析</p>
+</div>
+
+<!-- 上传区域 -->
+<div class="card p-4">
+
+<div class="row">
+<div class="col-md-6">
+<label class="form-label">果实图片（成熟度识别）</label>
+<input type="file" id="fruitInput" class="form-control">
+</div>
+
+<div class="col-md-6">
+<label class="form-label">叶片图片（病虫害识别）</label>
+<input type="file" id="leafInput" class="form-control">
+</div>
+</div>
+
+<button onclick="predict()" class="btn btn-primary mt-4 w-100">
+开始分析
+</button>
+
+</div>
+
+
+<!-- 结果区域 -->
+<div id="resultArea" class="mt-5" style="display:none;">
+
+<div class="row">
+
+<div class="col-md-6">
+<div class="card p-3">
+<div class="section-title">果实识别结果</div>
+<img id="fruitImage" class="result-img">
+</div>
+</div>
+
+<div class="col-md-6">
+<div class="card p-3">
+<div class="section-title">叶片识别结果</div>
+<img id="leafImage" class="result-img">
+</div>
+</div>
+
+</div>
+
+<div class="card p-4 mt-4">
+<div class="section-title">统计信息</div>
+<pre id="stats"></pre>
+
+<div class="section-title mt-3">智能分析建议</div>
+<pre id="advice"></pre>
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+function predict(){
+
+let fruit = document.getElementById("fruitInput").files[0];
+let leaf = document.getElementById("leafInput").files[0];
+
+if(!fruit && !leaf){
+alert("请至少上传一张图片");
+return;
+}
+
+let formData = new FormData();
+if(fruit) formData.append("fruit", fruit);
+if(leaf) formData.append("leaf", leaf);
+
+fetch("/predict",{
+method:"POST",
+body:formData
+})
+.then(res=>res.json())
+.then(data=>{
+
+if(data.error){
+alert(data.error);
+return;
+}
+
+document.getElementById("resultArea").style.display="block";
+
+// 果实图
+if(data.fruit_image){
+document.getElementById("fruitImage").src=data.fruit_image;
+document.getElementById("fruitImage").style.display="block";
+}else{
+document.getElementById("fruitImage").style.display="none";
+}
+
+// 叶片图
+if(data.leaf_image){
+document.getElementById("leafImage").src=data.leaf_image;
+document.getElementById("leafImage").style.display="block";
+}else{
+document.getElementById("leafImage").style.display="none";
+}
+
+document.getElementById("stats").textContent =
+JSON.stringify(data.stats,null,4);
+
+document.getElementById("advice").textContent = data.advice;
+
+});
+}
+
+</script>
+
+</body>
+</html>
