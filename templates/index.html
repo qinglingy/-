@@ -18,10 +18,6 @@ body{
     margin-bottom:40px;
 }
 
-.header h2{
-    font-weight:600;
-}
-
 .card{
     border-radius:12px;
     box-shadow:0 4px 15px rgba(0,0,0,0.06);
@@ -56,6 +52,52 @@ pre{
     margin-bottom:15px;
 }
 
+/* ===== 新增聊天框样式 ===== */
+.chat-box{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:300px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.2);
+    overflow:hidden;
+}
+
+.chat-header{
+    background:#0d6efd;
+    color:#fff;
+    padding:8px;
+    text-align:center;
+    font-size:14px;
+}
+
+.chat-content{
+    height:250px;
+    overflow-y:auto;
+    padding:10px;
+    font-size:13px;
+}
+
+.chat-input{
+    display:flex;
+    border-top:1px solid #ddd;
+}
+
+.chat-input input{
+    flex:1;
+    border:none;
+    padding:8px;
+    outline:none;
+}
+
+.chat-input button{
+    border:none;
+    background:#0d6efd;
+    color:#fff;
+    padding:0 10px;
+}
+
 </style>
 </head>
 
@@ -68,17 +110,16 @@ pre{
 <p class="text-muted">成熟度识别 + 病虫害检测 + 智能分析</p>
 </div>
 
-<!-- 上传区域 -->
 <div class="card p-4">
 
 <div class="row">
 <div class="col-md-6">
-<label class="form-label">果实图片（成熟度识别）</label>
+<label class="form-label">果实图片</label>
 <input type="file" id="fruitInput" class="form-control">
 </div>
 
 <div class="col-md-6">
-<label class="form-label">叶片图片（病虫害识别）</label>
+<label class="form-label">叶片图片</label>
 <input type="file" id="leafInput" class="form-control">
 </div>
 </div>
@@ -89,8 +130,6 @@ pre{
 
 </div>
 
-
-<!-- 结果区域 -->
 <div id="resultArea" class="mt-5" style="display:none;">
 
 <div class="row">
@@ -123,6 +162,15 @@ pre{
 
 </div>
 
+<!-- ===== 新增聊天框 ===== -->
+<div class="chat-box">
+    <div class="chat-header">AI助手</div>
+    <div id="chatContent" class="chat-content"></div>
+    <div class="chat-input">
+        <input id="chatInput" placeholder="输入问题...">
+        <button onclick="chat()">发送</button>
+    </div>
+</div>
 
 <script>
 
@@ -147,25 +195,16 @@ body:formData
 .then(res=>res.json())
 .then(data=>{
 
-if(data.error){
-alert(data.error);
-return;
-}
-
 document.getElementById("resultArea").style.display="block";
 
-// 果实图
 if(data.fruit_image){
 document.getElementById("fruitImage").src=data.fruit_image;
-document.getElementById("fruitImage").style.display="block";
 }else{
 document.getElementById("fruitImage").style.display="none";
 }
 
-// 叶片图
 if(data.leaf_image){
 document.getElementById("leafImage").src=data.leaf_image;
-document.getElementById("leafImage").style.display="block";
 }else{
 document.getElementById("leafImage").style.display="none";
 }
@@ -176,6 +215,31 @@ JSON.stringify(data.stats,null,4);
 document.getElementById("advice").textContent = data.advice;
 
 });
+}
+
+// ===== 新增聊天功能 =====
+function chat(){
+
+let input = document.getElementById("chatInput");
+let content = document.getElementById("chatContent");
+
+let text = input.value;
+if(!text) return;
+
+content.innerHTML += "<div><b>我：</b>"+text+"</div>";
+input.value="";
+
+fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:text})
+})
+.then(res=>res.json())
+.then(data=>{
+content.innerHTML += "<div><b>AI：</b>"+data.reply+"</div>";
+content.scrollTop = content.scrollHeight;
+});
+
 }
 
 </script>

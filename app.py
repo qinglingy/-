@@ -161,5 +161,44 @@ def predict():
     })
 
 
+
+# ===============================
+# 聊天接口（新增）
+# ===============================
+@app.route("/chat", methods=["POST"])
+def chat_api():
+
+    user_msg = request.json.get("message")
+
+    headers = {
+        "Authorization": f"Bearer {QWEN_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "qwen-turbo",
+        "input": {
+            "messages": [
+                {"role": "user", "content": user_msg}
+            ]
+        }
+    }
+
+    try:
+        response = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
+            headers=headers,
+            json=data,
+            timeout=30
+        )
+
+        result = response.json()
+        reply = result["output"]["text"]
+
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"reply": "出错：" + str(e)})
+
 if __name__ == "__main__":
     app.run(debug=True)
