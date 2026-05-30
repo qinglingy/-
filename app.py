@@ -27,12 +27,41 @@ print("模型加载成功")
 app = Flask(__name__)
 
 # ===============================
-# 填入你的通义千问 API KEY
+# 本地大模型配置
 # ===============================
-QWEN_API_KEY = "sk-a9d90bdcae1943adb6560d4a88f0714d"
+LLM_URL = "http://10.133.20.98/api/chat"
+
 
 # ===============================
 # 调用大模型
+# ===============================
+def call_llm(prompt):
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "message": prompt
+    }
+
+    response = requests.post(
+        LLM_URL,
+        headers=headers,
+        json=data,
+        timeout=30
+    )
+
+    result = response.json()
+    print("大模型原始返回：", result)
+
+    if "answer" in result:
+        return result["answer"]
+
+    return "大模型返回格式不符合预期：" + str(result)
+
+
+# ===============================
+# 生成种植建议
 # ===============================
 def generate_advice(stats):
 
@@ -42,43 +71,22 @@ def generate_advice(stats):
     total_fruits = sum(maturity.values())
 
     prompt = f"""
-    番茄检测结果如下（单位为数量）：
+番茄检测结果如下（单位为数量）：
 
-    果实总数：{total_fruits}
-    成熟度统计：{maturity}
-    病虫害统计：{disease}
+果实总数：{total_fruits}
+成熟度统计：{maturity}
+病虫害统计：{disease}
 
-    请输出：
-    1. 植株健康分析
-    2. 是否建议采摘
-    3. 病害处理建议
-    4. 种植管理建议
-    5. 综合风险等级（低/中/高）
-    """
-
-    headers = {
-        "Authorization": f"Bearer {QWEN_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "qwen-turbo",
-        "input": {
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        }
-    }
+请输出：
+1. 植株健康分析
+2. 是否建议采摘
+3. 病害处理建议
+4. 种植管理建议
+5. 综合风险等级（低/中/高）
+"""
 
     try:
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-            headers=headers,
-            json=data,
-            timeout=30
-        )
-        result = response.json()
-        return result["output"]["text"]
+        return call_llm(prompt)
     except Exception as e:
         return f"大模型调用失败：{str(e)}"
 
@@ -129,7 +137,6 @@ def predict():
     fruit_img_url = None
     leaf_img_url = None
 
-    # 果实图
     if fruit_file and fruit_file.filename != "":
         fruit_name = f"{uuid.uuid4().hex}_fruit.jpg"
         fruit_path = os.path.join(UPLOAD_DIR, fruit_name)
@@ -140,7 +147,6 @@ def predict():
         )
         stats["maturity"] = maturity_stats
 
-    # 叶片图
     if leaf_file and leaf_file.filename != "":
         leaf_name = f"{uuid.uuid4().hex}_leaf.jpg"
         leaf_path = os.path.join(UPLOAD_DIR, leaf_name)
@@ -161,44 +167,21 @@ def predict():
     })
 
 
-
 # ===============================
-# 聊天接口（新增）
+# 聊天接口
 # ===============================
 @app.route("/chat", methods=["POST"])
 def chat_api():
 
     user_msg = request.json.get("message")
 
-    headers = {
-        "Authorization": f"Bearer {QWEN_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "qwen-turbo",
-        "input": {
-            "messages": [
-                {"role": "user", "content": user_msg}
-            ]
-        }
-    }
-
     try:
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-            headers=headers,
-            json=data,
-            timeout=30
-        )
-
-        result = response.json()
-        reply = result["output"]["text"]
-
+        reply = call_llm(user_msg)
         return jsonify({"reply": reply})
 
     except Exception as e:
         return jsonify({"reply": "出错：" + str(e)})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
