@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>番茄智能决策系统</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+    background: #f4f7fb;
+    font-family: "Microsoft YaHei", sans-serif;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:40px;
+}
+
+.card{
+    border-radius:12px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.06);
+    border:none;
+}
+
+.result-img{
+    width:100%;
+    height:420px;
+    object-fit:contain;
+    background:#eef2f6;
+    border-radius:10px;
+    padding:10px;
+}
+
+pre{
+    white-space:pre-wrap;
+    background:#f8f9fa;
+    padding:15px;
+    border-radius:8px;
+    font-size:14px;
+}
+
+.btn-primary{
+    height:45px;
+    font-size:16px;
+    border-radius:8px;
+}
+
+.section-title{
+    font-weight:600;
+    margin-bottom:15px;
+}
+
+/* ===== 新增聊天框样式 ===== */
+.chat-box{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:300px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.2);
+    overflow:hidden;
+}
+
+.chat-header{
+    background:#0d6efd;
+    color:#fff;
+    padding:8px;
+    text-align:center;
+    font-size:14px;
+}
+
+.chat-content{
+    height:250px;
+    overflow-y:auto;
+    padding:10px;
+    font-size:13px;
+}
+
+.chat-input{
+    display:flex;
+    border-top:1px solid #ddd;
+}
+
+.chat-input input{
+    flex:1;
+    border:none;
+    padding:8px;
+    outline:none;
+}
+
+.chat-input button{
+    border:none;
+    background:#0d6efd;
+    color:#fff;
+    padding:0 10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+<div class="header">
+<h2>🍅 番茄生长智能决策系统</h2>
+<p class="text-muted">成熟度识别 + 病虫害检测 + 智能分析</p>
+</div>
+
+<div class="card p-4">
+
+<div class="row">
+<div class="col-md-6">
+<label class="form-label">果实图片</label>
+<input type="file" id="fruitInput" class="form-control">
+</div>
+
+<div class="col-md-6">
+<label class="form-label">叶片图片</label>
+<input type="file" id="leafInput" class="form-control">
+</div>
+</div>
+
+<button onclick="predict()" class="btn btn-primary mt-4 w-100">
+开始分析
+</button>
+
+</div>
+
+<div id="resultArea" class="mt-5" style="display:none;">
+
+<div class="row">
+
+<div class="col-md-6">
+<div class="card p-3">
+<div class="section-title">果实识别结果</div>
+<img id="fruitImage" class="result-img">
+</div>
+</div>
+
+<div class="col-md-6">
+<div class="card p-3">
+<div class="section-title">叶片识别结果</div>
+<img id="leafImage" class="result-img">
+</div>
+</div>
+
+</div>
+
+<div class="card p-4 mt-4">
+<div class="section-title">统计信息</div>
+<pre id="stats"></pre>
+
+<div class="section-title mt-3">智能分析建议</div>
+<pre id="advice"></pre>
+</div>
+
+</div>
+
+</div>
+
+<!-- ===== 新增聊天框 ===== -->
+<div class="chat-box">
+    <div class="chat-header">AI助手</div>
+    <div id="chatContent" class="chat-content"></div>
+    <div class="chat-input">
+        <input id="chatInput" placeholder="输入问题...">
+        <button onclick="chat()">发送</button>
+    </div>
+</div>
+
+<script>
+
+function predict(){
+
+let fruit = document.getElementById("fruitInput").files[0];
+let leaf = document.getElementById("leafInput").files[0];
+
+if(!fruit && !leaf){
+alert("请至少上传一张图片");
+return;
+}
+
+let formData = new FormData();
+if(fruit) formData.append("fruit", fruit);
+if(leaf) formData.append("leaf", leaf);
+
+fetch("/predict",{
+method:"POST",
+body:formData
+})
+.then(res=>res.json())
+.then(data=>{
+
+document.getElementById("resultArea").style.display="block";
+
+if(data.fruit_image){
+document.getElementById("fruitImage").src=data.fruit_image;
+}else{
+document.getElementById("fruitImage").style.display="none";
+}
+
+if(data.leaf_image){
+document.getElementById("leafImage").src=data.leaf_image;
+}else{
+document.getElementById("leafImage").style.display="none";
+}
+
+document.getElementById("stats").textContent =
+JSON.stringify(data.stats,null,4);
+
+document.getElementById("advice").textContent = data.advice;
+
+});
+}
+
+// ===== 新增聊天功能 =====
+function chat(){
+
+let input = document.getElementById("chatInput");
+let content = document.getElementById("chatContent");
+
+let text = input.value;
+if(!text) return;
+
+content.innerHTML += "<div><b>我：</b>"+text+"</div>";
+input.value="";
+
+fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:text})
+})
+.then(res=>res.json())
+.then(data=>{
+content.innerHTML += "<div><b>AI：</b>"+data.reply+"</div>";
+content.scrollTop = content.scrollHeight;
+});
+
+}
+
+</script>
+
+</body>
+</html>
